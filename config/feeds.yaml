@@ -1,0 +1,28 @@
+# Research Assistant Feed Configuration
+# Add RSS/Atom feed URLs for topics you want to track
+
+feeds:
+  # Tech News
+  - name: Hacker News (Front Page)
+    url: https://hnrss.org/frontpage
+
+  - name: TechCrunch
+    url: https://techcrunch.com/feed/
+
+  # AI & Machine Learning
+  - name: OpenAI Blog
+    url: https://openai.com/blog/rss/
+
+  - name: Google AI Blog
+    url: https://blog.google/technology/ai/rss/
+
+  # Product & Strategy
+  - name: Stratechery
+    url: https://stratechery.com/feed/
+
+  # Add your own feeds below:
+  # - name: Your Favorite Blog
+  #   url: https://example.com/feed.xml
+  #
+  # - name: Industry Newsletter
+  #   url: https://newsletter.example.com/rss

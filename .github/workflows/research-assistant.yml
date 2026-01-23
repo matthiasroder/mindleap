@@ -1,0 +1,45 @@
+name: Research Assistant
+
+on:
+  schedule:
+    # 5:00 AM Berlin time (4:00 AM UTC in winter, 3:00 AM UTC in summer)
+    # Using 4:00 AM UTC for winter time
+    - cron: '0 4 * * *'
+  workflow_dispatch:  # Manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/research_assistant/requirements.txt
+
+      - name: Run research assistant
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python -m scripts.research_assistant.main
+
+      - name: Commit and push digest
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "Research Assistant"
+          git add feeds/
+          git diff --staged --quiet || git commit -m "Add research digest for $(date +%Y-%m-%d)"
+          git push

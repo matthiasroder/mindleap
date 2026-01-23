@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "mcp__perplexity__perplexity_ask",
+      "mcp__perplexity__perplexity_reason",
+      "mcp__perplexity__perplexity_research",
+      "mcp__perplexity__perplexity_search",
+      "Skill(commit)",
+      "Skill(idea-extraction)",
+      "Skill(linkedin-publish)",
+      "Skill(sync)",
+      "Skill(tweet)"
+    ]
+  }
+}

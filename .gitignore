@@ -1,0 +1,9 @@
+.env
+.env.local
+__pycache__/
+*.pyc
+.venv/
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+feeds/state.json
+.DS_Store
