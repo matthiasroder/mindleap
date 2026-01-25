@@ -1,7 +1,6 @@
 # Mindleap
 
-An Obsidian vault template designed for AI-augmented knowledge work with Claude Code. Combines personal knowledge management with automated research, content creation, and publishing workflows.
-
+A markdown-based knowledge vault with Claude Code skills for automated research, idea extraction, and social publishing.
 ## Features
 
 - **Automated Research Assistant**: Daily RSS feed analysis that filters articles based on your interests and current work
@@ -11,7 +10,7 @@ An Obsidian vault template designed for AI-augmented knowledge work with Claude 
 
 ## Prerequisites
 
-- [Obsidian](https://obsidian.md/) (for viewing and editing the vault)
+- Markdown editor like [Obsidian](https://obsidian.md/) (for viewing and editing the vault)
 - [Claude Code](https://claude.ai/claude-code) CLI
 - Python 3.11+ (for Research Assistant)
 - Chrome with [Claude-in-Chrome extension](https://chromewebstore.google.com/) (for publishing skills)
@@ -41,10 +40,7 @@ An Obsidian vault template designed for AI-augmented knowledge work with Claude 
    # Edit USER.md with your information
    ```
 
-5. **Open in Obsidian**
-   - Open Obsidian
-   - Select "Open folder as vault"
-   - Choose the `mindleap` directory
+5. **Open in Markdown editor **
 
 6. **Start Claude Code**
    ```bash

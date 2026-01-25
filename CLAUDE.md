@@ -1,10 +1,10 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code on how to work with this vault.
+This file provides guidance to Claude Code on how to work with this directory.
 
 ## What This Is
 
-This is an **Obsidian vault** - a personal knowledge management system. It is not a software project with build systems or tests.
+This is a personal knowledge management system. It is not a software project with build systems or tests.
 
 ## Rules
 
