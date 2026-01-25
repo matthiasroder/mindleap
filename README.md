@@ -40,7 +40,7 @@ A markdown-based knowledge vault with Claude Code skills for automated research,
    # Edit USER.md with your information
    ```
 
-5. **Open in Markdown editor **
+5. **Open in Markdown editor**
 
 6. **Start Claude Code**
    ```bash
