@@ -4,7 +4,7 @@ This file provides guidance to Claude Code on how to work with this directory.
 
 ## What This Is
 
-This is a personal knowledge management system. It is not a software project with build systems or tests.
+This is a personal knowledge management system with a Python research assistant. Its offline regression tests run with `python -m unittest discover -s tests -v` after installing `scripts/research_assistant/requirements.txt`.
 
 ## Rules
 
@@ -48,7 +48,7 @@ If Perplexity MCP is configured:
 
 Skills and commands are invoked with `/skillname` or triggered by context:
 
-- `/commit` - Stage all changes, commit with message, and push to remote
+- `/commit` - Review the destination and changes, stage intended paths, commit, and push after the required privacy check
 - `/idea-extraction` - Extract ideas from documents and save to /ideas
 - `/linkedin-publish` - Publish content to LinkedIn newsletter (opens browser)
 - `/sync` - Pull latest changes, read key files, check for @Claude todos
@@ -59,6 +59,10 @@ Skills and commands are invoked with `/skillname` or triggered by context:
 ### Research Assistant
 1. Runs daily at 5:00 CET
 2. Fetches RSS feeds from `config/feeds.yaml`
+   Uses the four model choices in `config/research.yaml`
 3. Filters articles for relevance (based on IDEAS.md, USER.md, drafts)
 4. Analyzes and summarizes relevant articles
-5. Writes personalized digests to `feeds/YYYY-MM-DD.md`
+5. Appends each completed run to `feeds/YYYY-MM-DD.md`
+6. Records completed URLs in tracked `feeds/state.json`; a failed model stage leaves history unchanged
+
+`--reprocess` adds another digest section without changing history. Keep the personal vault in a private repository before adding a profile, notes, or research output.
