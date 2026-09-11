@@ -2,13 +2,35 @@
 Build context from repository content.
 """
 
-import os
+from datetime import date
 from pathlib import Path
+import re
 
-import anthropic
+from .llm import DEFAULT_MODELS, complete_text
 
 
-def build_context(drafts_dir: Path, ideas_path: Path, user_path: Path = None) -> str:
+_DATED_DRAFT = re.compile(r"^(\d{4}-\d{2}-\d{2})(?:\D|$)")
+
+
+def _draft_sort_key(path: Path) -> tuple[int, int, str]:
+    """Put valid date-prefixed drafts first, newest first via reverse sorting."""
+    match = _DATED_DRAFT.match(path.name)
+    if match:
+        try:
+            draft_date = date.fromisoformat(match.group(1))
+            return (1, draft_date.toordinal(), path.name)
+        except ValueError:
+            pass
+    return (0, 0, path.name)
+
+
+def build_context(
+    drafts_dir: Path,
+    ideas_path: Path,
+    user_path: Path | None = None,
+    *,
+    model: str = DEFAULT_MODELS.context,
+) -> str:
     """
     Build context from full contents of drafts, IDEAS.md, and USER.md.
 
@@ -29,7 +51,8 @@ def build_context(drafts_dir: Path, ideas_path: Path, user_path: Path = None) ->
     # Read current drafts - full content
     if drafts_dir.exists():
         draft_contents = []
-        for draft_file in sorted(drafts_dir.glob("*.md"))[:5]:  # Limit to 5 most recent
+        draft_files = sorted(drafts_dir.glob("*.md"), key=_draft_sort_key, reverse=True)
+        for draft_file in draft_files[:5]:
             try:
                 content = draft_file.read_text().strip()
                 draft_contents.append(f"--- {draft_file.name} ---\n{content}")
@@ -42,13 +65,11 @@ def build_context(drafts_dir: Path, ideas_path: Path, user_path: Path = None) ->
     raw_context = "\n\n".join(context_parts)
 
     # Use AI to create a succinct summary
-    return summarize_with_ai(raw_context)
+    return summarize_with_ai(raw_context, model=model)
 
 
-def summarize_with_ai(raw_context: str) -> str:
-    """Use Haiku to summarize the raw context into a user interest profile."""
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-
+def summarize_with_ai(raw_context: str, *, model: str = DEFAULT_MODELS.context) -> str:
+    """Summarize the raw context into a user interest profile."""
     prompt = f"""You are summarizing a user's current interests and focus areas based on their notes.
 
 INPUT:
@@ -63,10 +84,4 @@ Focus on:
 
 Be concrete and specific, not generic. Reference actual titles and concepts from the input."""
 
-    response = client.messages.create(
-        model="claude-3-5-haiku-latest",
-        max_tokens=300,
-        messages=[{"role": "user", "content": prompt}],
-    )
-
-    return response.content[0].text.strip()
+    return complete_text(stage="context", model=model, prompt=prompt, max_tokens=300)

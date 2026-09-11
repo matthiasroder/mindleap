@@ -1,0 +1,5 @@
+models:
+  context: claude-haiku-4-5-20251001
+  filter: claude-haiku-4-5-20251001
+  analysis: claude-sonnet-5
+  synthesis: claude-sonnet-5

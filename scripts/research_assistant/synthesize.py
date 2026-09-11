@@ -2,20 +2,21 @@
 Synthesize themes across articles using Claude Sonnet.
 """
 
-import os
 from typing import Any
 
-import anthropic
+from .llm import DEFAULT_MODELS, complete_text
 
 
-def synthesize_themes(articles: list[dict[str, Any]]) -> str:
+def synthesize_themes(
+    articles: list[dict[str, Any]],
+    *,
+    model: str = DEFAULT_MODELS.synthesis,
+) -> str:
     """
     Identify cross-article themes and patterns.
     """
     if not articles:
         return "No articles to synthesize."
-
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
     # Build summary of all articles
     article_summaries = []
@@ -39,15 +40,6 @@ Identify 2-4 themes or patterns you notice:
 Be concise. Write 2-4 bullet points, each 1-2 sentences.
 Format as a simple bulleted list starting with "- "."""
 
-    try:
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=300,
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        return response.content[0].text.strip()
-
-    except Exception as e:
-        print(f"  Error synthesizing themes: {e}")
-        return "Could not synthesize themes."
+    return complete_text(
+        stage="synthesis", model=model, prompt=prompt, max_tokens=300
+    )

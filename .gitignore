@@ -5,5 +5,4 @@ __pycache__/
 .venv/
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
-feeds/state.json
 .DS_Store

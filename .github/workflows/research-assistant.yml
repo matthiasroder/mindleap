@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: research-assistant
+  cancel-in-progress: false
+
 jobs:
   research:
     runs-on: ubuntu-latest
@@ -19,6 +23,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -37,9 +43,17 @@ jobs:
           python -m scripts.research_assistant.main
 
       - name: Commit and push digest
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "Research Assistant"
           git add feeds/
-          git diff --staged --quiet || git commit -m "Add research digest for $(date +%Y-%m-%d)"
-          git push
+          if git diff --staged --quiet; then
+            echo "No research output changes to publish"
+            exit 0
+          fi
+          git commit -m "Add research digest for $(date +%Y-%m-%d)"
+          git fetch origin "$DEFAULT_BRANCH"
+          git rebase "origin/$DEFAULT_BRANCH"
+          git push origin "HEAD:$DEFAULT_BRANCH"
