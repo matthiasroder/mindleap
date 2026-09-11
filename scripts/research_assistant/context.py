@@ -1,7 +1,3 @@
-"""
-Build context from repository content.
-"""
-
 from datetime import date
 from pathlib import Path
 import re
@@ -13,7 +9,6 @@ _DATED_DRAFT = re.compile(r"^(\d{4}-\d{2}-\d{2})(?:\D|$)")
 
 
 def _draft_sort_key(path: Path) -> tuple[int, int, str]:
-    """Put valid date-prefixed drafts first, newest first via reverse sorting."""
     match = _DATED_DRAFT.match(path.name)
     if match:
         try:
@@ -38,17 +33,14 @@ def build_context(
     """
     context_parts = []
 
-    # Read USER.md (user bio/background) - full content
     if user_path and user_path.exists():
         user_content = user_path.read_text().strip()
         context_parts.append(f"USER BACKGROUND:\n{user_content}")
 
-    # Read IDEAS.md - full content
     if ideas_path.exists():
         ideas_content = ideas_path.read_text().strip()
         context_parts.append(f"IDEAS AND INTERESTS:\n{ideas_content}")
 
-    # Read current drafts - full content
     if drafts_dir.exists():
         draft_contents = []
         draft_files = sorted(drafts_dir.glob("*.md"), key=_draft_sort_key, reverse=True)
@@ -64,7 +56,6 @@ def build_context(
 
     raw_context = "\n\n".join(context_parts)
 
-    # Use AI to create a succinct summary
     return summarize_with_ai(raw_context, model=model)
 
 

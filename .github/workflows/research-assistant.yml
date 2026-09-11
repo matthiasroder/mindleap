@@ -2,10 +2,8 @@ name: Research Assistant
 
 on:
   schedule:
-    # 5:00 AM Berlin time (4:00 AM UTC in winter, 3:00 AM UTC in summer)
-    # Using 4:00 AM UTC for winter time
     - cron: '0 4 * * *'
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
 
 permissions:
   contents: write

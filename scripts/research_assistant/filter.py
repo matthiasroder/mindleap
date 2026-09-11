@@ -1,7 +1,3 @@
-"""
-Batch relevance filtering using Claude Haiku.
-"""
-
 import json
 from typing import Any
 
@@ -16,9 +12,9 @@ def filter_articles(
     model: str = DEFAULT_MODELS.filter,
 ) -> list[dict[str, Any]]:
     """
-    Filter articles for relevance using Claude Haiku.
+    Score every article in batches of 20 and return those rated 4 or 5.
 
-    Processes in batches of 20, returns articles scoring 4 or 5.
+    Raise if any batch lacks a complete set of valid scores.
     """
     relevant = []
     batch_size = 20
@@ -26,7 +22,6 @@ def filter_articles(
 
     for i in range(0, len(articles), batch_size):
         batch = articles[i:i + batch_size]
-        # Log each URL being filtered
         for j, article in enumerate(batch):
             log.info(f"Filtering {i + j + 1}/{total}: {article['url']}")
         batch_relevant = filter_batch(batch, context, model=model)
@@ -41,9 +36,6 @@ def filter_batch(
     *,
     model: str = DEFAULT_MODELS.filter,
 ) -> list[dict[str, Any]]:
-    """Filter a single batch of articles."""
-
-    # Format articles for the prompt
     article_list = []
     for idx, article in enumerate(articles):
         preview = article["content"][:200] if article["content"] else ""

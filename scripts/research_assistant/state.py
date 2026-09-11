@@ -1,5 +1,3 @@
-"""Durable state for completed research decisions and publications."""
-
 from __future__ import annotations
 
 import json
@@ -44,8 +42,6 @@ def _normalize_state(raw: object) -> dict[str, Any]:
 
     version = raw.get("version")
     if version is None:
-        # Version 1 was written from a set. Preserve all memberships, but do not
-        # pretend its serialized order records chronology.
         allowed = {"processed_urls", "last_run"}
         unknown = set(raw) - allowed
         if unknown:
@@ -54,10 +50,10 @@ def _normalize_state(raw: object) -> dict[str, Any]:
             )
         if "processed_urls" not in raw:
             raise ResearchError("Legacy research state is missing 'processed_urls'")
-        legacy = _url_list(raw["processed_urls"], "processed_urls")
+        unordered_legacy_urls = _url_list(raw["processed_urls"], "processed_urls")
         return {
             "version": STATE_VERSION,
-            "legacy_processed_urls": legacy,
+            "legacy_processed_urls": unordered_legacy_urls,
             "processed_urls": [],
             "last_run": last_run,
         }

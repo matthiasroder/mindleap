@@ -1,7 +1,3 @@
-"""
-Deep analysis of relevant articles using Claude Sonnet.
-"""
-
 from typing import Any
 
 from .llm import DEFAULT_MODELS, ResearchError, complete_text
@@ -14,9 +10,6 @@ def analyze_articles(
     *,
     model: str = DEFAULT_MODELS.analysis,
 ) -> list[dict[str, Any]]:
-    """
-    Perform deep analysis on each relevant article using Claude Sonnet.
-    """
     analyzed = []
     total = len(articles)
     for i, article in enumerate(articles):
@@ -33,8 +26,6 @@ def analyze_single(
     *,
     model: str = DEFAULT_MODELS.analysis,
 ) -> dict[str, str]:
-    """Analyze a single article."""
-
     prompt = f"""You are a research assistant providing deep analysis of an article.
 
 CONTEXT ABOUT THE USER:

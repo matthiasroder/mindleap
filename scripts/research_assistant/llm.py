@@ -1,5 +1,3 @@
-"""Claude model configuration and the shared text-completion boundary."""
-
 from __future__ import annotations
 
 import os

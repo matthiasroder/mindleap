@@ -1,7 +1,3 @@
-"""
-Synthesize themes across articles using Claude Sonnet.
-"""
-
 from typing import Any
 
 from .llm import DEFAULT_MODELS, complete_text
@@ -12,13 +8,9 @@ def synthesize_themes(
     *,
     model: str = DEFAULT_MODELS.synthesis,
 ) -> str:
-    """
-    Identify cross-article themes and patterns.
-    """
     if not articles:
         return "No articles to synthesize."
 
-    # Build summary of all articles
     article_summaries = []
     for article in articles:
         summary = article.get("summary", article["title"])
