@@ -24,12 +24,19 @@ def _stable_unique(values: Iterable[str]) -> list[str]:
     return result
 
 
-def _url_list(value: object, field: str) -> list[str]:
-    if not isinstance(value, list) or any(
-        not isinstance(item, str) or not item for item in value
-    ):
+def _url_list(value: object, field: str, *, drop_legacy_empty: bool = False) -> list[str]:
+    if not isinstance(value, list):
         raise ResearchError(f"State field {field!r} must be a list of non-empty strings")
-    return _stable_unique(value)
+    urls = []
+    for item in value:
+        if item == "" and drop_legacy_empty:
+            continue
+        if not isinstance(item, str) or not item.strip():
+            raise ResearchError(
+                f"State field {field!r} must be a list of non-empty strings"
+            )
+        urls.append(item)
+    return _stable_unique(urls)
 
 
 def _normalize_state(raw: object) -> dict[str, Any]:
@@ -50,7 +57,9 @@ def _normalize_state(raw: object) -> dict[str, Any]:
             )
         if "processed_urls" not in raw:
             raise ResearchError("Legacy research state is missing 'processed_urls'")
-        unordered_legacy_urls = _url_list(raw["processed_urls"], "processed_urls")
+        unordered_legacy_urls = _url_list(
+            raw["processed_urls"], "processed_urls", drop_legacy_empty=True
+        )
         return {
             "version": STATE_VERSION,
             "legacy_processed_urls": unordered_legacy_urls,

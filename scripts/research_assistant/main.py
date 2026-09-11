@@ -19,7 +19,13 @@ def _unique_articles(articles):
     seen = set()
     unique = []
     for article in articles:
-        url = article["url"]
+        url = article.get("url")
+        if not isinstance(url, str) or not url.strip():
+            log.warning(
+                "Skipping linkless article: %s",
+                article.get("title", "Untitled"),
+            )
+            continue
         if url not in seen:
             seen.add(url)
             unique.append(article)

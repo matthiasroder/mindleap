@@ -200,6 +200,56 @@ class ResearchRegressions(unittest.TestCase):
         self.assertEqual(state["processed_urls"], ["https://example.invalid/A"])
         self.assertEqual(list(self.root.joinpath("feeds").glob("*.md")), [])
 
+    def test_mixed_linkless_feed_only_processes_valid_article(self):
+        linkless = article("Linkless")
+        linkless["url"] = ""
+        self.run_pipeline([linkless, article("Valid")])
+
+        prompts = [prompt for _, prompt in FixtureClient.calls]
+        self.assertTrue(all("Linkless" not in prompt for prompt in prompts))
+        self.assertEqual(
+            seen_urls(load_state(self.root / "feeds/state.json")),
+            {"https://example.invalid/Valid"},
+        )
+        digest = next(self.root.joinpath("feeds").glob("*.md")).read_text()
+        self.assertIn("https://example.invalid/Valid", digest)
+        self.assertNotIn("Linkless", digest)
+
+    def test_all_linkless_feed_stops_before_model_or_digest(self):
+        missing = article("Missing")
+        missing["url"] = ""
+        blank = article("Blank")
+        blank["url"] = "   "
+        self.run_pipeline([missing, blank])
+
+        self.assertEqual(FixtureClient.calls, [])
+        self.assertEqual(list(self.root.glob("feeds/*.md")), [])
+
+    def test_legacy_empty_url_is_dropped_without_losing_real_membership(self):
+        state_path = self.root / "feeds/state.json"
+        state_path.parent.mkdir()
+        state_path.write_text(
+            '{"processed_urls": ["", "https://example.invalid/A"], '
+            '"last_run": null}'
+        )
+        migrated = load_state(state_path)
+        self.assertEqual(
+            migrated["legacy_processed_urls"], ["https://example.invalid/A"]
+        )
+
+        self.run_pipeline([article("A"), article("B")])
+        persisted = load_state(state_path)
+        self.assertEqual(
+            seen_urls(persisted),
+            {"https://example.invalid/A", "https://example.invalid/B"},
+        )
+        filtered_prompts = [
+            prompt for _, prompt in FixtureClient.calls if "Rate each article" in prompt
+        ]
+        self.assertEqual(len(filtered_prompts), 1)
+        self.assertNotIn('0. "A"', filtered_prompts[0])
+        self.assertIn('0. "B"', filtered_prompts[0])
+
     def test_corrupt_existing_state_fails_instead_of_resetting(self):
         state_path = self.root / "feeds/state.json"
         state_path.parent.mkdir()
