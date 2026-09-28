@@ -1,14 +1,18 @@
 #!/bin/bash
 set -e
 
-cd "$CLAUDE_PROJECT_DIR" 2>/dev/null || cd "$(dirname "$0")/../.."
+vault_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+cd -- "$vault_root"
 
 echo "=== SYNCING VAULT ==="
 
 # 1. Git pull
 echo ""
 echo "--- Git Status ---"
-git pull origin main 2>&1 || echo "Warning: git pull failed (offline?)"
+if ! git pull --ff-only; then
+    echo "Vault sync failed. Resolve the Git error above before processing tasks." >&2
+    exit 1
+fi
 git status --short
 
 # 2. Read key files and extract @Claude todos
@@ -27,7 +31,7 @@ cat IDEAS.md 2>/dev/null || echo "(no IDEAS.md found)"
 # 3. Check for @Claude mentions
 echo ""
 echo "=== @CLAUDE TODOS ==="
-TODOS=$(grep -n "@Claude" README.md USER.md IDEAS.md 2>/dev/null || true)
+TODOS=$(grep -En '^[[:space:]]*[-*][[:space:]]+\[ \].*@Claude' USER.md IDEAS.md 2>/dev/null || true)
 if [ -n "$TODOS" ]; then
     echo "$TODOS"
     echo ""

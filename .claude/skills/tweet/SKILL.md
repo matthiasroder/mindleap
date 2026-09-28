@@ -19,7 +19,8 @@ Transforms the most recently discussed idea, article draft, or topic into tweet-
 
 ## Requirements
 
-- Chrome browser with Claude-in-Chrome extension
+- Chrome browser with the Claude in Chrome extension and a connected Claude Code session (`claude --chrome` or enable via `/chrome`)
+- Claude Code signed in with `/login` using a supported Claude plan; API-key authentication alone does not support Chrome integration
 - User must be logged into X/Twitter
 
 ## Process

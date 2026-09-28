@@ -106,6 +106,10 @@ class ResearchRegressions(unittest.TestCase):
                 str(self.root / "scripts/research_assistant/main.py"),
             ),
             patch.object(pipeline, "fetch_all_feeds", return_value=articles),
+            patch.object(pipeline, "read_articles", side_effect=lambda items: [
+                {**item, "content_status": "retrieved", "evidence": "Retrieved fixture article text."}
+                for item in items
+            ]),
             patch("anthropic.Anthropic", FixtureClient),
         ):
             pipeline.main(reprocess=reprocess)

@@ -68,12 +68,14 @@ Use these labels:
 
 ### Step 5: Write Ideas Document
 
-Save to `/ideas/[source-name]-extraction.md` with the structure below.
+Save to `/ideas/YYYY-MM-DD-[source-name]-extraction.md` with the structure below.
 
-Use descriptive, hyphenated filenames based on source:
-- From a file: `[filename]-extraction.md`
-- From a folder: `[foldername]-extraction.md`
-- From conversation: `[topic]-extraction.md`
+Prefix every new filename with the extraction date (`YYYY-MM-DD-`), then use a descriptive, hyphenated source name:
+- From a file: `YYYY-MM-DD-[filename]-extraction.md`
+- From a folder: `YYYY-MM-DD-[foldername]-extraction.md`
+- From conversation: `YYYY-MM-DD-[topic]-extraction.md`
+
+Each new extraction includes `research: true` frontmatter. The Research Assistant reads the newest five opted-in idea files. Explain that the user can set `research: false` to exclude an extraction. Preserve the existing setting when updating a document. All `/ideas/`, `/drafts/`, and similar paths in this skill refer to folders inside the vault, not the filesystem root.
 
 ### Step 6: Report to User
 
@@ -84,6 +86,10 @@ Use descriptive, hyphenated filenames based on source:
 ## Output Template
 
 ```markdown
+---
+research: true
+---
+
 # Idea Extraction: [Source Name]
 
 Extracted from: [source path or description]
@@ -195,16 +201,16 @@ When complete, provide:
 
 **Input:** "/idea-extraction on the old_notes folder"
 
-**Output:** Creates `/ideas/old_notes-extraction.md` with ideas grouped by theme, each with novelty assessment and connections to current work.
+**Output:** Creates `/ideas/YYYY-MM-DD-old-notes-extraction.md` with ideas grouped by theme, each with novelty assessment and connections to current work.
 
 ---
 
 **Input:** "Extract ideas from our conversation about creativity research"
 
-**Output:** Creates `/ideas/creativity-research-extraction.md` with ideas discussed, noting which connect to existing drafts and which are novel angles worth developing.
+**Output:** Creates `/ideas/YYYY-MM-DD-creativity-research-extraction.md` with ideas discussed, noting which connect to existing drafts and which are novel angles worth developing.
 
 ---
 
 **Input:** "Mine /drafts/ for ideas worth a Twitter thread"
 
-**Output:** Creates `/ideas/drafts-extraction.md` focusing on tweetable concepts, with recommendations for which ideas are most suited to short-form content.
+**Output:** Creates `/ideas/YYYY-MM-DD-drafts-extraction.md` focusing on tweetable concepts, with recommendations for which ideas are most suited to short-form content.

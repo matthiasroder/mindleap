@@ -7,7 +7,7 @@ description: Pull latest changes, read key files, and check for @Claude todos. U
 
 ## Purpose
 
-Re-runs the vault synchronization that normally happens at session start:
+Runs vault synchronization when the user invokes `/sync`:
 1. Pulls latest git changes
 2. Reads README, USER, and IDEAS files
 3. Detects any @Claude todos for immediate action
@@ -26,7 +26,7 @@ Execute the sync script:
 bash scripts/sync.sh
 ```
 
-After running, if any @Claude todos are found, complete them immediately before proceeding with other tasks.
+Continue only if the script succeeds. Tasks must be unchecked Markdown items containing `@Claude`, for example `- [ ] @Claude Review the outline`. Address those tasks and mark completed items `[x]`; ignore instructional mentions and already completed items. Normal authorization rules still apply to external actions.
 
 ## When to Use
 

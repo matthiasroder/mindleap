@@ -6,11 +6,12 @@ from pathlib import Path
 
 from .feeds import fetch_all_feeds
 from .context import build_context
-from .state import load_state, record_completed, save_state, seen_urls
+from .state import load_state, record_completed, seen_urls
 from .filter import filter_articles
 from .analyze import analyze_articles
 from .synthesize import synthesize_themes
-from .output import write_digest
+from .articles import read_articles
+from .persistence import commit_run, recover_run, research_lock
 from .logger import log
 from .llm import ResearchError, load_models
 
@@ -36,6 +37,14 @@ def main(reprocess: bool = False):
     log.info("Starting research assistant")
 
     repo_root = Path(__file__).parent.parent.parent
+    with research_lock(repo_root / "feeds"):
+        if recover_run(repo_root / "feeds"):
+            log.info("Complete: Recovered the interrupted run; no articles were reprocessed")
+            return
+        _run(repo_root, reprocess)
+
+
+def _run(repo_root: Path, reprocess: bool):
     feed_config_path = repo_root / "config" / "feeds.yaml"
     model_config_path = repo_root / "config" / "research.yaml"
     state_path = repo_root / "feeds" / "state.json"
@@ -60,7 +69,7 @@ def main(reprocess: bool = False):
         return
 
     context = build_context(
-        drafts_dir, ideas_path, user_path, model=models.context
+        drafts_dir, ideas_path, user_path, ideas_dir=repo_root / "ideas", model=models.context
     )
 
     relevant_articles = filter_articles(
@@ -69,32 +78,32 @@ def main(reprocess: bool = False):
 
     if not relevant_articles:
         if not reprocess:
-            state = record_completed(
+            updated = record_completed(
                 state,
                 (article["url"] for article in new_articles),
                 datetime.now().isoformat(),
             )
-            save_state(state_path, state)
+            commit_run(output_dir, [], "", state_before=state, state_after=updated)
         log.info("Complete: No relevant articles found")
         return
 
     analyzed_articles = analyze_articles(
-        relevant_articles, context, model=models.analysis
+        read_articles(relevant_articles), context, model=models.analysis
     )
 
     themes = synthesize_themes(analyzed_articles, model=models.synthesis)
 
-    today = datetime.now().strftime("%Y-%m-%d")
-    output_path = output_dir / f"{today}.md"
-    write_digest(output_path, analyzed_articles, themes, today)
-
+    updated = None
     if not reprocess:
-        state = record_completed(
+        updated = record_completed(
             state,
             (article["url"] for article in new_articles),
             datetime.now().isoformat(),
         )
-        save_state(state_path, state)
+    commit_run(
+        output_dir, analyzed_articles, themes,
+        state_before=None if reprocess else state, state_after=updated,
+    )
 
     log.info(f"Complete: {len(analyzed_articles)} articles in digest")
 
@@ -110,7 +119,7 @@ def cli() -> int:
     args = parser.parse_args()
     try:
         main(reprocess=args.reprocess)
-    except ResearchError as exc:
+    except (ResearchError, OSError) as exc:
         log.error(str(exc))
         return 1
     return 0

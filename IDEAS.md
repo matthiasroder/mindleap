@@ -22,4 +22,4 @@ Track your ideas, questions, and topics to explore.
 
 ---
 
-**Tip:** Add `@Claude` to any item for Claude to address it automatically during `/sync`.
+**Tip:** Write an unchecked task such as `- [ ] @Claude Review this idea` for Claude to address during `/sync`. Mark completed tasks `[x]`.

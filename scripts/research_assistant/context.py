@@ -1,8 +1,9 @@
 from datetime import date
 from pathlib import Path
 import re
+import yaml
 
-from .llm import DEFAULT_MODELS, complete_text
+from .llm import DEFAULT_MODELS, ResearchError, complete_text
 
 
 _DATED_DRAFT = re.compile(r"^(\d{4}-\d{2}-\d{2})(?:\D|$)")
@@ -24,10 +25,11 @@ def build_context(
     ideas_path: Path,
     user_path: Path | None = None,
     *,
+    ideas_dir: Path | None = None,
     model: str = DEFAULT_MODELS.context,
 ) -> str:
     """
-    Build context from full contents of drafts, IDEAS.md, and USER.md.
+    Build context from drafts, selected extracted ideas, IDEAS.md, and USER.md.
 
     Returns an AI-generated summary of current focus based on complete file contents.
     """
@@ -53,6 +55,29 @@ def build_context(
 
         if draft_contents:
             context_parts.append("CURRENT DRAFTS:\n" + "\n\n".join(draft_contents))
+
+    if ideas_dir and ideas_dir.exists():
+        selected = []
+        for path in sorted(ideas_dir.glob("*.md"), key=_draft_sort_key, reverse=True):
+            try:
+                content = path.read_text(encoding="utf-8")
+                lines = content.splitlines()
+                if not lines or lines[0] != "---":
+                    continue
+                end = lines.index("---", 1)
+                metadata = yaml.safe_load("\n".join(lines[1:end]))
+                if not isinstance(metadata, dict):
+                    raise ValueError("frontmatter must be a mapping")
+                if "research" in metadata and not isinstance(metadata["research"], bool):
+                    raise ValueError("research must be true or false")
+                if metadata.get("research") is True:
+                    selected.append(f"--- {path.name} ---\n" + "\n".join(lines[end + 1:]).strip())
+            except (OSError, ValueError, yaml.YAMLError) as exc:
+                raise ResearchError(f"Could not read extracted idea {path}: {exc}") from exc
+            if len(selected) == 5:
+                break
+        if selected:
+            context_parts.append("SELECTED EXTRACTED IDEAS:\n" + "\n\n".join(selected))
 
     raw_context = "\n\n".join(context_parts)
 

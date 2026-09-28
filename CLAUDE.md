@@ -57,12 +57,15 @@ Skills and commands are invoked with `/skillname` or triggered by context:
 ## Workflows and GitHub Actions
 
 ### Research Assistant
-1. Runs daily at 5:00 CET
+1. Runs at 04:00 UTC when the private vault's `RESEARCH_ENABLED` variable is `true`
 2. Fetches RSS feeds from `config/feeds.yaml`
    Uses the four model choices in `config/research.yaml`
-3. Filters articles for relevance (based on IDEAS.md, USER.md, drafts)
-4. Analyzes and summarizes relevant articles
+3. Filters articles for relevance (based on IDEAS.md, USER.md, five drafts, and five idea files with `research: true`)
+4. Retrieves article text before analysis; unavailable sources are listed as links without invented summaries
 5. Appends each completed run to `feeds/YYYY-MM-DD.md`
-6. Records completed URLs in tracked `feeds/state.json`; a failed model stage leaves history unchanged
+6. Records completed URLs in tracked `feeds/state.json`; failed feed/model stages leave history unchanged
+7. Serializes local runs and recovers interrupted saves from ignored `feeds/.pending-run.json` before starting new work
 
 `--reprocess` adds another digest section without changing history. Keep the personal vault in a private repository before adding a profile, notes, or research output.
+
+Claude account login and browser publishing are separate from research API authentication. Launch `env -u ANTHROPIC_API_KEY claude --chrome` for publishing and use `/login` and `/chrome` to connect. Shared settings are in `.claude/settings.json`; personal overrides belong in ignored `.claude/settings.local.json`.

@@ -39,7 +39,7 @@ def _url_list(value: object, field: str, *, drop_legacy_empty: bool = False) -> 
     return _stable_unique(urls)
 
 
-def _normalize_state(raw: object) -> dict[str, Any]:
+def normalize_state(raw: object) -> dict[str, Any]:
     if not isinstance(raw, Mapping):
         raise ResearchError("Research state must be a JSON object")
 
@@ -116,12 +116,12 @@ def load_state(state_path: Path) -> dict[str, Any]:
         raw = json.loads(state_path.read_text())
     except (OSError, json.JSONDecodeError) as exc:
         raise ResearchError(f"Could not read research state {state_path}: {exc}") from exc
-    return _normalize_state(raw)
+    return normalize_state(raw)
 
 
 def seen_urls(state: Mapping[str, Any]) -> frozenset[str]:
     """Return membership across unknown legacy and ordered modern cohorts."""
-    normalized = _normalize_state(state)
+    normalized = normalize_state(state)
     return frozenset(
         normalized["legacy_processed_urls"] + normalized["processed_urls"]
     )
@@ -131,7 +131,7 @@ def record_completed(
     state: Mapping[str, Any], completed_urls: Iterable[str], last_run: str
 ) -> dict[str, Any]:
     """Append known completions and retire legacy history only when safe."""
-    normalized = _normalize_state(state)
+    normalized = normalize_state(state)
     legacy = list(normalized["legacy_processed_urls"])
     modern = list(normalized["processed_urls"])
 
@@ -158,7 +158,7 @@ def record_completed(
 
 def save_state(state_path: Path, state: Mapping[str, Any]) -> None:
     """Validate state, then atomically replace its JSON file."""
-    normalized = _normalize_state(state)
+    normalized = normalize_state(state)
     state_path.parent.mkdir(parents=True, exist_ok=True)
     payload = json.dumps(normalized, indent=2) + "\n"
     descriptor, temp_name = tempfile.mkstemp(

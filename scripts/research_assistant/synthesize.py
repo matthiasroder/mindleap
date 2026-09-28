@@ -8,8 +8,9 @@ def synthesize_themes(
     *,
     model: str = DEFAULT_MODELS.synthesis,
 ) -> str:
+    articles = [article for article in articles if article.get("content_status") == "retrieved"]
     if not articles:
-        return "No articles to synthesize."
+        return "- No themes inferred: the selected links did not provide readable article text."
 
     article_summaries = []
     for article in articles:

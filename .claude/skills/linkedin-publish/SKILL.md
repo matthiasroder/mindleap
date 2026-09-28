@@ -1,3 +1,8 @@
+---
+name: linkedin-publish
+description: Prepare a LinkedIn newsletter article in the browser for the user to review and publish. Use when asked to publish or share a draft on LinkedIn.
+---
+
 # LinkedIn Publish Skill
 
 ## Purpose
@@ -13,7 +18,8 @@ Publishes a blog post to your LinkedIn newsletter and prepares it for final revi
 
 ## Requirements
 
-- Chrome browser with Claude-in-Chrome extension
+- Chrome browser with the Claude in Chrome extension and a connected Claude Code session (`claude --chrome` or enable via `/chrome`)
+- Claude Code signed in with `/login` using a supported Claude plan; API-key authentication alone does not support Chrome integration
 - User must be logged into LinkedIn
 
 ## Process

@@ -6,6 +6,8 @@ from pathlib import Path
 import tempfile
 from typing import Any
 
+from filelock import FileLock
+
 
 def _render_run(
     articles: list[dict[str, Any]], themes: str, generated_at: datetime
@@ -33,6 +35,8 @@ def _render_run(
         lines.extend([
             f"#### {source}: [{title}]({url})",
             "",
+            f"**Evidence:** {article.get('evidence', 'Not recorded.')}",
+            "",
             f"**Summary:** {summary}",
             "",
         ])
@@ -52,14 +56,26 @@ def write_digest(
     articles: list[dict[str, Any]],
     themes: str,
     date: str,
+    *,
+    run_id: str | None = None,
+    generated_at: datetime | None = None,
 ) -> None:
-    """Append one complete run while preserving every existing digest byte."""
+    """Serialize append operations and make journal replay idempotent."""
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    generated_at = datetime.now()
+    with FileLock(str(output_path.with_name(f".{output_path.name}.lock")), timeout=30):
+        _append_digest(output_path, articles, themes, date, run_id, generated_at)
+
+
+def _append_digest(output_path, articles, themes, date, run_id, generated_at):
+    generated_at = generated_at or datetime.now()
     run = _render_run(articles, themes, generated_at).encode("utf-8")
+    marker = f"<!-- mindleap-run:{run_id} -->\n".encode("ascii") if run_id else b""
+    run = marker + run
 
     if output_path.exists():
         previous = output_path.read_bytes()
+        if marker and marker in previous:
+            return
         separator = b"" if not previous or previous.endswith(b"\n\n") else (
             b"\n" if previous.endswith(b"\n") else b"\n\n"
         )

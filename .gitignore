@@ -6,3 +6,7 @@ __pycache__/
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 .DS_Store
+.claude/settings.local.json
+feeds/.*.lock
+feeds/.pending-run.json
+feeds/.*.tmp

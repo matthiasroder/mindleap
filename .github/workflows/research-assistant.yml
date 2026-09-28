@@ -14,9 +14,19 @@ concurrency:
 
 jobs:
   research:
+    # Scheduling is opt-in for each personal vault. Manual runs remain available.
+    if: github.event_name == 'workflow_dispatch' || vars.RESEARCH_ENABLED == 'true'
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check research credentials
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::Set the ANTHROPIC_API_KEY repository secret before running research."
+            exit 1
+          fi
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
