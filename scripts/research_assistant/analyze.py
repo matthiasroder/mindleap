@@ -1,6 +1,6 @@
 from typing import Any
 
-from .llm import DEFAULT_MODELS, ResearchError, complete_text
+from .llm import DEFAULT_MODELS, ModelChoice, ResearchError, complete_text
 from .logger import log
 
 
@@ -8,7 +8,7 @@ def analyze_articles(
     articles: list[dict[str, Any]],
     context: str,
     *,
-    model: str = DEFAULT_MODELS.analysis,
+    model: ModelChoice | str = DEFAULT_MODELS.analysis,
 ) -> list[dict[str, Any]]:
     analyzed = []
     total = len(articles)
@@ -24,7 +24,7 @@ def analyze_single(
     article: dict[str, Any],
     context: str,
     *,
-    model: str = DEFAULT_MODELS.analysis,
+    model: ModelChoice | str = DEFAULT_MODELS.analysis,
 ) -> dict[str, str]:
     if article.get("content_status") != "retrieved":
         return {
@@ -68,7 +68,7 @@ Be concise and specific. Focus on what makes this article valuable for the user.
     return _parse_analysis(response_text, model)
 
 
-def _parse_analysis(text: str, model: str) -> dict[str, str]:
+def _parse_analysis(text: str, model: ModelChoice | str) -> dict[str, str]:
     labels = {
         "SUMMARY:": "summary",
         "KEY_INSIGHT:": "key_insight",

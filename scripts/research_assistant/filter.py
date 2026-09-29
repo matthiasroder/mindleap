@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from .llm import DEFAULT_MODELS, ResearchError, complete_text
+from .llm import DEFAULT_MODELS, ModelChoice, ResearchError, complete_text
 from .logger import log
 
 
@@ -9,7 +9,7 @@ def filter_articles(
     articles: list[dict[str, Any]],
     context: str,
     *,
-    model: str = DEFAULT_MODELS.filter,
+    model: ModelChoice | str = DEFAULT_MODELS.filter,
 ) -> list[dict[str, Any]]:
     """
     Score every article in batches of 20 and return those rated 4 or 5.
@@ -34,7 +34,7 @@ def filter_batch(
     articles: list[dict[str, Any]],
     context: str,
     *,
-    model: str = DEFAULT_MODELS.filter,
+    model: ModelChoice | str = DEFAULT_MODELS.filter,
 ) -> list[dict[str, Any]]:
     article_list = []
     for idx, article in enumerate(articles):
@@ -77,7 +77,7 @@ Be selective. Most articles should score 1-3. Only score 4-5 if truly relevant t
     ]
 
 
-def _parse_scores(text: str, article_count: int, model: str) -> list[int]:
+def _parse_scores(text: str, article_count: int, model: ModelChoice | str) -> list[int]:
     def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
         result = {}
         for key, value in pairs:

@@ -46,14 +46,14 @@ A Markdown knowledge vault with Claude Code skills for research, idea extraction
    git push -u origin main
    ```
 
-4. For local research, read your Anthropic API key into a shell variable. The hidden prompt keeps the key out of your shell history. The variable is intentionally not exported to Claude Code: research API access and Claude account login are separate.
+4. For local research, read the API key for your selected provider into a shell variable. The hidden prompt keeps the key out of your shell history. The variable is intentionally not exported to Claude Code: research API access and Claude account login are separate.
 
    ```bash
    read -r -s MINDLEAP_RESEARCH_KEY
    test -n "$MINDLEAP_RESEARCH_KEY" && echo "Research key is set for this terminal session"
    ```
 
-   To run the Research Assistant in GitHub Actions, also store the key as a repository secret. `gh secret set` prompts for the value and encrypts it before upload.
+   To run the Research Assistant in GitHub Actions, also store the key as a repository secret. Use `ANTHROPIC_API_KEY` for Anthropic, `OPENAI_API_KEY` for OpenAI, or `LLM_API_KEY` for an OpenAI-compatible endpoint. Set every secret needed if stages use different providers. `gh secret set` prompts for the value and encrypts it before upload.
 
    ```bash
    gh secret set ANTHROPIC_API_KEY
@@ -95,11 +95,11 @@ With the virtual environment active and the research key entered as above:
 ANTHROPIC_API_KEY="$MINDLEAP_RESEARCH_KEY" python -m scripts.research_assistant.main
 ```
 
-This passes the key only to the research process. A new terminal session needs the key entered again. `.env.example` lists the variable names; the Python script does not automatically load `.env` files.
+This passes the key only to the research process. Replace `ANTHROPIC_API_KEY` with `OPENAI_API_KEY` or `LLM_API_KEY` if you selected that provider. For mixed providers, export all selected keys. A new terminal session needs the key entered again. `.env.example` lists the variable names; the Python script does not automatically load `.env` files.
 
 ### Connect browser publishing
 
-Research uses the Anthropic API; the X and LinkedIn skills use your logged-in browser. Chrome integration needs a supported Claude plan and Claude Code `/login`, and does not work with API-key-only authentication.
+Research uses the configured LLM API; the X and LinkedIn skills use your logged-in browser. Chrome integration needs a supported Claude plan and Claude Code `/login`, and does not work with API-key-only authentication.
 
 1. Install the [Claude in Chrome extension](https://code.claude.com/docs/en/chrome) and sign in to the browser accounts you want to use.
 2. Launch `env -u ANTHROPIC_API_KEY claude --chrome` from the vault.
@@ -114,7 +114,9 @@ Shared defaults live in `.claude/settings.json`. Personal changes belong in the 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Anthropic API access for local runs and GitHub Actions |
+| `ANTHROPIC_API_KEY` | If selected | Anthropic API access for local runs and GitHub Actions |
+| `OPENAI_API_KEY` | If selected | OpenAI API access |
+| `LLM_API_KEY` | If selected | API key for an OpenAI-compatible endpoint; for a local endpoint without authentication, use a placeholder value |
 | `PERPLEXITY_API_KEY` | Optional | For Perplexity MCP tools |
 
 ## Directory structure
@@ -127,7 +129,7 @@ mindleap/
 ├── .github/workflows/    # GitHub Actions (Research Assistant)
 ├── config/               # Configuration files
 │   ├── feeds.yaml        # RSS feeds for Research Assistant
-│   └── research.yaml     # Models for each Research Assistant stage
+│   └── research.yaml     # Provider and models for each Research Assistant stage
 ├── scripts/              # Automation scripts
 │   └── research_assistant/
 ├── drafts/               # Work in progress content
@@ -154,11 +156,12 @@ mindleap/
 
 ## Customization
 
-### Research models
+### Research provider and models
 
-Edit the four keys under `models` in `config/research.yaml` to choose the Anthropic Claude model for each stage:
+Edit `config/research.yaml` to choose the provider and model for each stage. The template defaults to Anthropic:
 
 ```yaml
+provider: anthropic
 models:
   context: claude-haiku-4-5-20251001
   filter: claude-haiku-4-5-20251001
@@ -166,7 +169,25 @@ models:
   synthesis: claude-sonnet-5
 ```
 
-Both local runs and GitHub Actions read this file. Each stage key is optional. If you omit one, Mindleap uses the default value shown above. Mindleap currently supports Anthropic Claude models only and does not fall back to another model. If a configured model is unavailable or invalid, the failed stage names the `models` key to change.
+Set `provider: openai` and replace all four model IDs to use OpenAI. For an OpenAI-compatible Chat Completions API, set `provider: openai-compatible`, add `base_url: https://your-provider.example/v1`, and replace all four model IDs. An OpenAI-compatible endpoint must support `/chat/completions`, the `max_tokens` request field, and standard `choices[0].message.content` and `finish_reason` response fields.
+
+You can route an individual stage to a different provider:
+
+```yaml
+provider: anthropic
+models:
+  context: claude-haiku-4-5-20251001
+  filter: claude-haiku-4-5-20251001
+  analysis:
+    provider: openai
+    model: your-openai-model-id
+  synthesis:
+    provider: openai-compatible
+    base_url: https://your-provider.example/v1
+    model: your-provider-model-id
+```
+
+Both local runs and GitHub Actions read this file. With the default Anthropic provider, omitted stages use the template defaults. If you change the default provider, specify all four models to avoid carrying over Claude model IDs. API keys belong in environment variables or GitHub secrets, never in this file. A configured provider or model failure stops the run without falling back.
 
 ### RSS feeds
 
@@ -235,7 +256,7 @@ Local runs are locked against overlap. If saving a completed run is interrupted,
 To enable:
 
 1. Push your configuration and notes to the private `origin` created above
-2. Add `ANTHROPIC_API_KEY` to repository secrets
+2. Add the selected provider key(s) to repository secrets (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `LLM_API_KEY`)
 3. Test a manual run from the repository's Actions page
 4. Enable daily runs with `gh variable set RESEARCH_ENABLED --body true`
 

@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 import tempfile
@@ -8,7 +9,14 @@ from unittest.mock import patch
 
 from scripts.research_assistant import main as pipeline
 from scripts.research_assistant.context import build_context
-from scripts.research_assistant.llm import ModelConfigError, ResearchError, load_models
+from scripts.research_assistant.llm import (
+    ModelChoice,
+    ModelConfigError,
+    ResearchError,
+    complete_text,
+    load_models,
+    required_api_keys,
+)
 from scripts.research_assistant.output import write_digest
 from scripts.research_assistant.state import (
     load_state,
@@ -84,6 +92,30 @@ class FixtureClient:
         )
 
 
+class FixtureOpenAIClient:
+    calls = []
+    clients = []
+
+    def __init__(self, **kwargs):
+        self.__class__.clients.append(kwargs)
+        self.chat = SimpleNamespace(completions=self)
+
+    def create(self, **kwargs):
+        self.__class__.calls.append(kwargs)
+        result = FixtureClient().create(
+            messages=kwargs["messages"],
+            model=kwargs["model"],
+            max_tokens=kwargs.get("max_tokens", kwargs.get("max_completion_tokens")),
+        )
+        finish_reason = "length" if result.stop_reason == "max_tokens" else "stop"
+        return SimpleNamespace(
+            choices=[SimpleNamespace(
+                finish_reason=finish_reason,
+                message=SimpleNamespace(content=result.content[0].text),
+            )]
+        )
+
+
 class ResearchRegressions(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
@@ -97,6 +129,8 @@ class ResearchRegressions(unittest.TestCase):
         FixtureClient.scenario = None
         FixtureClient.calls = []
         FixtureClient.filter_calls = 0
+        FixtureOpenAIClient.calls = []
+        FixtureOpenAIClient.clients = []
 
     def run_pipeline(self, articles, *, reprocess=False):
         with (
@@ -111,6 +145,12 @@ class ResearchRegressions(unittest.TestCase):
                 for item in items
             ]),
             patch("anthropic.Anthropic", FixtureClient),
+            patch("openai.OpenAI", FixtureOpenAIClient),
+            patch.dict(os.environ, {
+                "ANTHROPIC_API_KEY": "fixture-anthropic",
+                "OPENAI_API_KEY": "fixture-openai",
+                "LLM_API_KEY": "fixture-compatible",
+            }),
         ):
             pipeline.main(reprocess=reprocess)
 
@@ -137,8 +177,8 @@ class ResearchRegressions(unittest.TestCase):
         path = self.root / "config/research.yaml"
         path.write_text("models:\n  analysis: custom.analysis:v2\n")
         models = load_models(path)
-        self.assertEqual(models.analysis, "custom.analysis:v2")
-        self.assertEqual(models.context, "claude-haiku-4-5-20251001")
+        self.assertEqual(models.analysis, ModelChoice("anthropic", "custom.analysis:v2"))
+        self.assertEqual(models.context.model, "claude-haiku-4-5-20251001")
 
         path.write_text("models:\n  analyser: model-name\n")
         with self.assertRaisesRegex(ModelConfigError, "analyser"):
@@ -146,6 +186,117 @@ class ResearchRegressions(unittest.TestCase):
         path.write_text("models:\n  filter: 'bad model name'\n")
         with self.assertRaisesRegex(ModelConfigError, "models.filter"):
             load_models(path)
+
+    def test_openai_provider_runs_all_stages_with_selected_models(self):
+        self.root.joinpath("config/research.yaml").write_text(
+            "provider: openai\nmodels:\n"
+            "  context: openai-context\n"
+            "  filter: openai-filter\n"
+            "  analysis: openai-analysis\n"
+            "  synthesis: openai-synthesis\n"
+        )
+        models = load_models(self.root / "config/research.yaml")
+        self.assertEqual(required_api_keys(models), {"OPENAI_API_KEY"})
+        self.run_pipeline([article("A")])
+        self.assertEqual(
+            [call["model"] for call in FixtureOpenAIClient.calls],
+            ["openai-context", "openai-filter", "openai-analysis", "openai-synthesis"],
+        )
+        self.assertTrue(all("max_completion_tokens" in call for call in FixtureOpenAIClient.calls))
+        self.assertEqual(
+            FixtureOpenAIClient.clients,
+            [{"api_key": "fixture-openai", "base_url": "https://api.openai.com/v1"}] * 4,
+        )
+        self.assertEqual(seen_urls(load_state(self.root / "feeds/state.json")),
+                         {"https://example.invalid/A"})
+
+    def test_mixed_provider_and_compatible_endpoint(self):
+        self.root.joinpath("config/research.yaml").write_text(
+            "provider: anthropic\nmodels:\n"
+            "  context: claude-context\n"
+            "  filter:\n    provider: openai\n    model: openai-filter\n"
+            "  analysis:\n    provider: openai-compatible\n"
+            "    base_url: https://llm.example.invalid/v1\n"
+            "    model: vendor/analysis\n"
+            "  synthesis: claude-synthesis\n"
+        )
+        models = load_models(self.root / "config/research.yaml")
+        self.assertEqual(
+            required_api_keys(models),
+            {"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "LLM_API_KEY"},
+        )
+        self.run_pipeline([article("A")])
+        self.assertEqual(
+            [call["model"] for call in FixtureOpenAIClient.calls],
+            ["openai-filter", "vendor/analysis"],
+        )
+        self.assertIn("max_completion_tokens", FixtureOpenAIClient.calls[0])
+        self.assertIn("max_tokens", FixtureOpenAIClient.calls[1])
+        self.assertEqual(
+            FixtureOpenAIClient.clients[1],
+            {"api_key": "fixture-compatible", "base_url": "https://llm.example.invalid/v1"},
+        )
+        self.assertEqual(
+            [call[0] for call in FixtureClient.calls],
+            ["claude-context", "openai-filter", "vendor/analysis", "claude-synthesis"],
+        )
+
+    def test_provider_configuration_rejects_missing_or_invalid_values(self):
+        path = self.root / "config/research.yaml"
+        cases = [
+            ("provider: openai\nmodels:\n  context: gpt-test\n", "explicit models"),
+            ("provider: unknown\n", "provider"),
+            ("provider: openai-compatible\n", "requires base_url"),
+            ("base_url: https://example.invalid/v1\n", "base_url requires"),
+            ("models:\n  analysis:\n    provider: openai-compatible\n"
+             "    model: vendor-model\n", "requires base_url"),
+            ("provider: openai-compatible\nbase_url: https://user:pass@example.invalid/v1\n",
+             "without credentials"),
+            ("models:\n  analysis:\n    provider: openai\n"
+             "    base_url: https://example.invalid/v1\n    model: gpt-test\n",
+             "base_url requires"),
+        ]
+        for config, expected in cases:
+            with self.subTest(config=config):
+                path.write_text(config)
+                with self.assertRaisesRegex(ModelConfigError, expected):
+                    load_models(path)
+
+    def test_missing_selected_key_is_explicit_and_never_calls_api(self):
+        with patch.dict(os.environ, {}, clear=True), patch("openai.OpenAI") as client:
+            with self.assertRaisesRegex(
+                ResearchError, "OPENAI_API_KEY.*no fallback"
+            ):
+                complete_text(
+                    stage="filter",
+                    model=ModelChoice("openai", "gpt-test"),
+                    prompt="test",
+                    max_tokens=20,
+                )
+            client.assert_not_called()
+
+    def test_compatible_provider_never_uses_default_endpoint(self):
+        with (
+            patch.dict(os.environ, {"LLM_API_KEY": "fixture-compatible"}),
+            patch("openai.OpenAI") as client,
+        ):
+            with self.assertRaisesRegex(ResearchError, "base_url.*no fallback"):
+                complete_text(
+                    stage="filter",
+                    model=ModelChoice("openai-compatible", "vendor-model"),
+                    prompt="test",
+                    max_tokens=20,
+                )
+            client.assert_not_called()
+
+    def test_openai_truncation_does_not_advance_history(self):
+        self.root.joinpath("config/research.yaml").write_text(
+            "models:\n  context:\n    provider: openai\n    model: gpt-test\n"
+        )
+        FixtureClient.scenario = "truncated_context"
+        with self.assertRaisesRegex(ResearchError, "truncated"):
+            self.run_pipeline([article("A")])
+        self.assertEqual(seen_urls(load_state(self.root / "feeds/state.json")), set())
 
     def test_selected_model_failure_has_no_fallback(self):
         self.root.joinpath("config/research.yaml").write_text(

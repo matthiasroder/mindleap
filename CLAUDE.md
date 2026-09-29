@@ -59,7 +59,7 @@ Skills and commands are invoked with `/skillname` or triggered by context:
 ### Research Assistant
 1. Runs at 04:00 UTC when the private vault's `RESEARCH_ENABLED` variable is `true`
 2. Fetches RSS feeds from `config/feeds.yaml`
-   Uses the four model choices in `config/research.yaml`
+   Uses the provider and four model choices in `config/research.yaml`
 3. Filters articles for relevance (based on IDEAS.md, USER.md, five drafts, and five idea files with `research: true`)
 4. Retrieves article text before analysis; unavailable sources are listed as links without invented summaries
 5. Appends each completed run to `feeds/YYYY-MM-DD.md`

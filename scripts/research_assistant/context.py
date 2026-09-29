@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import yaml
 
-from .llm import DEFAULT_MODELS, ResearchError, complete_text
+from .llm import DEFAULT_MODELS, ModelChoice, ResearchError, complete_text
 
 
 _DATED_DRAFT = re.compile(r"^(\d{4}-\d{2}-\d{2})(?:\D|$)")
@@ -26,7 +26,7 @@ def build_context(
     user_path: Path | None = None,
     *,
     ideas_dir: Path | None = None,
-    model: str = DEFAULT_MODELS.context,
+    model: ModelChoice | str = DEFAULT_MODELS.context,
 ) -> str:
     """
     Build context from drafts, selected extracted ideas, IDEAS.md, and USER.md.
@@ -84,7 +84,7 @@ def build_context(
     return summarize_with_ai(raw_context, model=model)
 
 
-def summarize_with_ai(raw_context: str, *, model: str = DEFAULT_MODELS.context) -> str:
+def summarize_with_ai(raw_context: str, *, model: ModelChoice | str = DEFAULT_MODELS.context) -> str:
     """Summarize the raw context into a user interest profile."""
     prompt = f"""You are summarizing a user's current interests and focus areas based on their notes.
 

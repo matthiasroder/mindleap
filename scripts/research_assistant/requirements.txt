@@ -1,5 +1,6 @@
 # Research Assistant Dependencies
 anthropic>=0.40.0
+openai>=1.55,<3
 feedparser>=6.0.0
 pyyaml>=6.0
 trafilatura>=2.0,<3

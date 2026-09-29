@@ -19,14 +19,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check research credentials
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::error::Set the ANTHROPIC_API_KEY repository secret before running research."
-            exit 1
-          fi
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -44,9 +36,30 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r scripts/research_assistant/requirements.txt
 
+      - name: Check research credentials
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.research_assistant.llm import load_models, required_api_keys
+
+          required = required_api_keys(load_models(Path("config/research.yaml")))
+          missing = sorted(name for name in required if not os.environ.get(name))
+          if missing:
+              for name in missing:
+                  print(f"::error::Set the {name} repository secret before running research.")
+              raise SystemExit(1)
+          PY
+
       - name: Run research assistant
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
         run: |
           python -m scripts.research_assistant.main
 

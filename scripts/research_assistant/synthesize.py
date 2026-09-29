@@ -1,12 +1,12 @@
 from typing import Any
 
-from .llm import DEFAULT_MODELS, complete_text
+from .llm import DEFAULT_MODELS, ModelChoice, complete_text
 
 
 def synthesize_themes(
     articles: list[dict[str, Any]],
     *,
-    model: str = DEFAULT_MODELS.synthesis,
+    model: ModelChoice | str = DEFAULT_MODELS.synthesis,
 ) -> str:
     articles = [article for article in articles if article.get("content_status") == "retrieved"]
     if not articles:
